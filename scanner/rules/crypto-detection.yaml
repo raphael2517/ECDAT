@@ -1,0 +1,803 @@
+rules:
+  # =========================================================================
+  # JAVA
+  # =========================================================================
+  - id: java-crypto-import
+    languages: [java]
+    severity: INFO
+    message: "Java cryptography API imported"
+    patterns:
+      - pattern-either:
+          - pattern: import javax.crypto.$X;
+          - pattern: import javax.crypto.spec.$X;
+          - pattern: import java.security.$X;
+          - pattern: import java.security.spec.$X;
+          - pattern: import java.security.Signature;
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "MULTI"
+      mode: "UNKNOWN"
+
+  - id: java-bouncycastle-import
+    languages: [java]
+    severity: INFO
+    message: "BouncyCastle provider imported"
+    patterns:
+      - pattern-either:
+          - pattern: import org.bouncycastle.$X;
+          - pattern: import org.bouncycastle.jce.provider.BouncyCastleProvider;
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "MULTI"
+      mode: "UNKNOWN"
+
+  - id: java-cipher-weak-algorithm
+    languages: [java]
+    severity: ERROR
+    message: "Cipher.getInstance() selects a weak or broken algorithm/mode: $ALGO"
+    patterns:
+      - pattern-either:
+          - pattern: javax.crypto.Cipher.getInstance($ALGO)
+          - pattern: Cipher.getInstance($ALGO)
+      - metavariable-regex:
+          metavariable: $ALGO
+          regex: (?i)^(AES/)?(DES|DESede|3DES|RC4|RC2|Blowfish)[/].*|(?i).*/ECB/.*
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "ERROR"
+      algorithm: "$ALGO"
+      family: "SYM"
+      mode: "WEAK"
+
+  - id: java-cipher-getinstance
+    languages: [java]
+    severity: WARNING
+    message: "Cipher.getInstance() - review algorithm and mode: $ALGO"
+    patterns:
+      - pattern-either:
+          - pattern: javax.crypto.Cipher.getInstance($ALGO)
+          - pattern: Cipher.getInstance($ALGO)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "$ALGO"
+      family: "SYM"
+      mode: "UNKNOWN"
+
+  - id: java-cipher-ecb-mode
+    languages: [java]
+    severity: ERROR
+    message: "ECB block cipher mode in use - leaks plaintext structure"
+    patterns:
+      - pattern-regex: '(?i)Cipher\.getInstance\s*\(\s*"[^"]*/ECB/[^"]*"'
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "ERROR"
+      algorithm: "AES"
+      family: "SYM"
+      mode: "ECB"
+
+  - id: java-weak-hash
+    languages: [java]
+    severity: ERROR
+    message: "Broken hash function requested: $ALGO"
+    patterns:
+      - pattern-either:
+          - pattern: MessageDigest.getInstance($ALGO)
+          - pattern: java.security.MessageDigest.getInstance($ALGO)
+      - metavariable-regex:
+          metavariable: $ALGO
+          regex: (?i)"?(MD2|MD4|MD5|SHA-?1)"?
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-328"
+      severity: "ERROR"
+      algorithm: "$ALGO"
+      family: "HASH"
+      mode: "HASH"
+
+  - id: java-strong-hash
+    languages: [java]
+    severity: INFO
+    message: "Approved hash function requested: $ALGO"
+    patterns:
+      - pattern: MessageDigest.getInstance($ALGO)
+      - metavariable-regex:
+          metavariable: $ALGO
+          regex: (?i)"?(SHA-?256|SHA-?384|SHA-?512|SHA3-?256|SHA3-?512)"?
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-328"
+      severity: "INFO"
+      algorithm: "$ALGO"
+      family: "HASH"
+      mode: "HASH"
+
+  - id: java-rsa-provider
+    languages: [java]
+    severity: WARNING
+    message: "RSA key generation/provider in use - verify key size >= 2048"
+    patterns:
+      - pattern-either:
+          - pattern: KeyPairGenerator.getInstance("RSA")
+          - pattern: new RSACryptoServiceProvider(...)
+          - pattern: KeyFactory.getInstance("RSA")
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "RSA"
+      family: "ASYM"
+      mode: "KEYGEN"
+
+  - id: java-weak-rsa-keysize
+    languages: [java]
+    severity: ERROR
+    message: "RSA key size below 2048 bits"
+    patterns:
+      - pattern: $X.initialize(...)
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i)^(gen|keyGen|kpg|generator)$
+    metadata:
+      cwe: "CWE-326"
+      cwe2: "CWE-780"
+      severity: "ERROR"
+      algorithm: "RSA"
+      family: "ASYM"
+      mode: "KEYGEN"
+
+  - id: java-keystore-truststore
+    languages: [java]
+    severity: INFO
+    message: "Keystore/trustmanager handling - review key custody"
+    patterns:
+      - pattern-either:
+          - pattern: KeyStore.getInstance($X)
+          - pattern: TrustManagerFactory.getInstance($X)
+          - pattern: SSLContext.getInstance($X)
+    metadata:
+      cwe: "CWE-326"
+      cwe2: "CWE-295"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "TLS"
+      mode: "KEYSTORE"
+
+  - id: java-jwt-library
+    languages: [java]
+    severity: INFO
+    message: "JWT library in use - verify signing algorithm and key custody"
+    patterns:
+      - pattern-either:
+          - pattern: import io.jsonwebtoken.$X;
+          - pattern: import com.auth0.jwt.$X;
+          - pattern: import com.nimbusds.jose.$X;
+    metadata:
+      cwe: "CWE-347"
+      cwe2: "CWE-326"
+      severity: "INFO"
+      algorithm: "JWT"
+      family: "JWT"
+      mode: "SIGNING"
+
+  - id: java-jwt-signing-call
+    languages: [java]
+    severity: WARNING
+    message: "JWT signing/parsing call - confirm algorithm is not 'none' and key is externalized"
+    patterns:
+      - pattern-either:
+          - pattern: Jwts.builder().$X
+          - pattern: $X.signWith($KEY, $ALGO)
+          - pattern: Jwts.parser().$X
+    metadata:
+      cwe: "CWE-347"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "$ALGO"
+      family: "JWT"
+      mode: "SIGNING"
+
+  # =========================================================================
+  # PYTHON
+  # =========================================================================
+  - id: python-crypto-import
+    languages: [python]
+    severity: INFO
+    message: "Python cryptography library imported"
+    pattern-either:
+      - pattern: import Crypto.Cipher.$X
+      - pattern: from Crypto.Cipher import $X
+      - pattern: import cryptography.hazmat.primitives.$X
+      - pattern: from cryptography.hazmat.primitives import $X
+      - pattern: import hashlib
+      - pattern: import hmac
+      - pattern: import jwt
+      - pattern: import jose
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "MULTI"
+      mode: "UNKNOWN"
+
+  - id: python-weak-hash
+    languages: [python]
+    severity: ERROR
+    message: "Weak hash function: $FUNC()"
+    pattern-either:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+      - pattern: hashlib.new("md5", ...)
+      - pattern: hashlib.new("sha1", ...)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-328"
+      severity: "ERROR"
+      algorithm: "MD5/SHA-1"
+      family: "HASH"
+      mode: "HASH"
+
+  - id: python-cipher-algorithm
+    languages: [python]
+    severity: WARNING
+    message: "Cipher constructed with $ALGO"
+    pattern-either:
+      - pattern: Cipher(algorithms.$ALGO, modes.$MODE)
+      - pattern: Cipher($ALGO, $MODE)
+      - pattern: AES.new(...)
+      - pattern: DES.new(...)
+      - pattern: DES3.new(...)
+      - pattern: ARC4.new(...)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "$ALGO"
+      family: "SYM"
+      mode: "$MODE"
+
+  - id: python-ecb-mode
+    languages: [python]
+    severity: ERROR
+    message: "ECB mode selected"
+    pattern-either:
+      - pattern: modes.ECB(...)
+      - pattern: $X.new(...).encrypt(...)
+    metavariable-regex:
+      metavariable: $X
+      regex: (?i)^(cipher|aes|des)$
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "ERROR"
+      algorithm: "UNKNOWN"
+      family: "SYM"
+      mode: "ECB"
+
+  - id: python-jwt-usage
+    languages: [python]
+    severity: WARNING
+    message: "JWT encode/decode - confirm HS* secrets are not hardcoded and RS/ES keys externalized"
+    pattern-either:
+      - pattern: jwt.encode(...)
+      - pattern: jwt.decode(...)
+      - pattern: jose.jwt.encode(...)
+    metadata:
+      cwe: "CWE-347"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "JWT"
+      family: "JWT"
+      mode: "SIGNING"
+
+  # =========================================================================
+  # JAVASCRIPT / TYPESCRIPT
+  # =========================================================================
+  - id: node-crypto-import
+    languages: [javascript, typescript]
+    severity: INFO
+    message: "Node.js crypto module imported"
+    pattern-either:
+      - pattern: require('crypto')
+      - pattern: require("crypto")
+      - pattern: import $X from 'crypto'
+      - pattern: import $X from "crypto"
+      - pattern: require('node:crypto')
+      - pattern: require('jsonwebtoken')
+      - pattern: require('jose')
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "MULTI"
+      mode: "UNKNOWN"
+
+  - id: node-deprecated-createcipher
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: "crypto.createCipher() is removed/unsupported - migrate to createCipheriv()"
+    pattern: crypto.createCipher(...)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "ERROR"
+      algorithm: "UNKNOWN"
+      family: "SYM"
+      mode: "UNKNOWN"
+
+  - id: node-createcipheriv
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: "createCipheriv($ALGO) - review algorithm and IV handling"
+    pattern: crypto.createCipheriv($ALGO, ...)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "$ALGO"
+      family: "SYM"
+      mode: "UNKNOWN"
+
+  - id: node-weak-cipher-algorithm
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: "Weak cipher algorithm: $ALGO"
+    patterns:
+      - pattern: crypto.createCipheriv($ALGO, ...)
+      - metavariable-regex:
+          metavariable: $ALGO
+          regex: (?i)^['\"]?(des|des-ede3|rc4|rc2|blowfish|bf-ecb)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "ERROR"
+      algorithm: "$ALGO"
+      family: "SYM"
+      mode: "WEAK"
+
+  - id: node-tls-module
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: "TLS module use - check minimum protocol version is not disabled"
+    pattern-either:
+      - pattern: tls.createServer(...)
+      - pattern: tls.connect(...)
+      - pattern: require('tls')
+    metadata:
+      cwe: "CWE-295"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "TLS"
+      family: "TLS"
+      mode: "TRANSPORT"
+
+  # =========================================================================
+  # GO
+  # =========================================================================
+  - id: go-crypto-import
+    languages: [go]
+    severity: INFO
+    message: "Go crypto package imported"
+    pattern-either:
+      - pattern: import "crypto/..."
+      - pattern: import "golang.org/x/crypto/..."
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "MULTI"
+      mode: "UNKNOWN"
+
+  - id: go-weak-hash
+    languages: [go]
+    severity: ERROR
+    message: "Broken hash function used: $FUNC"
+    pattern-either:
+      - pattern: md5.New()
+      - pattern: sha1.New()
+      - pattern: $X.Write(...)
+    metavariable-regex:
+      metavariable: $X
+      regex: (?i)^(md5|sha1)$
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-328"
+      severity: "ERROR"
+      algorithm: "MD5/SHA-1"
+      family: "HASH"
+      mode: "HASH"
+
+  - id: go-rsa-usage
+    languages: [go]
+    severity: WARNING
+    message: "RSA usage in Go"
+    pattern-either:
+      - pattern: rsa.GenerateKey(...)
+      - pattern: rsa.EncryptOAEP(...)
+      - pattern: rsa.SignPKCS1v15(...)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "RSA"
+      family: "ASYM"
+      mode: "UNKNOWN"
+
+  # =========================================================================
+  # C / C++  (OpenSSL EVP)
+  # =========================================================================
+  - id: c-openssl-evp-digest
+    languages: [c, cpp]
+    severity: WARNING
+    message: "OpenSSL EVP_DigestInit_ex() - confirm a SHA-2 or SHA-3 digest, not MD5/SHA-1"
+    pattern: EVP_DigestInit_ex($CTX, $MD, $IMPL)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-328"
+      severity: "WARNING"
+      algorithm: "$MD"
+      family: "HASH"
+      mode: "HASH"
+
+  - id: c-openssl-evp-cipher
+    languages: [c, cpp]
+    severity: WARNING
+    message: "OpenSSL EVP_CipherInit_ex() - review algorithm and mode"
+    pattern: EVP_CipherInit_ex($CTX, $CIPHER, $IMPL, $KEY, $IV, $ENC)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "$CIPHER"
+      family: "SYM"
+      mode: "UNKNOWN"
+
+  - id: c-openssl-weak-cipher
+    languages: [c, cpp]
+    severity: ERROR
+    message: "Deprecated OpenSSL cipher: $CIPHER"
+    patterns:
+      - pattern-either:
+          - pattern: EVP_CipherInit_ex($CTX, $CIPHER, $IMPL, $KEY, $IV, $ENC)
+          - pattern: EVP_EncryptInit_ex($CTX, $CIPHER, $IMPL, $KEY, $IV)
+      - metavariable-regex:
+          metavariable: $CIPHER
+          regex: (?i).*(RC4|DES_EDE3|DES_CBC|RC2|BLOWFISH|ecb).*
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "ERROR"
+      algorithm: "$CIPHER"
+      family: "SYM"
+      mode: "WEAK"
+
+  # =========================================================================
+  # PHP
+  # =========================================================================
+  - id: php-openssl-call
+    languages: [php]
+    severity: WARNING
+    message: "PHP openssl_$FUNC() - review method and key handling"
+    pattern-either:
+      - pattern: openssl_encrypt(...)
+      - pattern: openssl_decrypt(...)
+      - pattern: openssl_sign(...)
+      - pattern: openssl_verify(...)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "UNKNOWN"
+      family: "MULTI"
+      mode: "UNKNOWN"
+
+  # =========================================================================
+  # C# / .NET
+  # =========================================================================
+  - id: csharp-crypto-import
+    languages: [csharp]
+    severity: INFO
+    message: ".NET cryptography namespace imported"
+    pattern-either:
+      - pattern: using System.Security.Cryptography;
+      - pattern: using System.Security.Cryptography.$X;
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "MULTI"
+      mode: "UNKNOWN"
+
+  - id: csharp-rsa-provider
+    languages: [csharp]
+    severity: WARNING
+    message: "RSACryptoServiceProvider in use - RSACryptoServiceProvider is legacy, prefer RSA.Create()"
+    pattern: new RSACryptoServiceProvider(...)
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "RSA"
+      family: "ASYM"
+      mode: "UNKNOWN"
+
+  - id: csharp-aes-create
+    languages: [csharp]
+    severity: WARNING
+    message: "AES cipher created - confirm 256-bit key and GCM mode"
+    pattern: Aes.Create()
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "AES"
+      family: "SYM"
+      mode: "UNKNOWN"
+
+  # =========================================================================
+  # CROSS-LANGUAGE CONSTANTS  (generic + pattern-regex)
+  # =========================================================================
+  - id: hardcoded-pem-private-key
+    languages: [generic]
+    severity: ERROR
+    message: "Inline PEM private key committed to source"
+    pattern-regex: '-----BEGIN\s+(RSA\s+|EC\s+|DSA\s+|OPENSSH\s+|PGP\s+)?PRIVATE\s+KEY(?:\s+BLOCK)?-----'
+    metadata:
+      cwe: "CWE-798"
+      cwe2: "CWE-321"
+      severity: "CRITICAL"
+      algorithm: "UNKNOWN"
+      family: "ASYM"
+      mode: "PRIVATE_KEY"
+
+  - id: hardcoded-pem-public-key
+    languages: [generic]
+    severity: INFO
+    message: "Inline PEM public key"
+    pattern-regex: '-----BEGIN\s+(RSA\s+|EC\s+)?PUBLIC\s+KEY-----'
+    metadata:
+      cwe: "CWE-798"
+      cwe2: "CWE-321"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "ASYM"
+      mode: "PUBLIC_KEY"
+
+  - id: hardcoded-ssh-public-key
+    languages: [generic]
+    severity: INFO
+    message: "Inline SSH public key"
+    pattern-regex: '(ssh-rsa|ssh-ed25519|ssh-dss|ecdsa-sha2-nistp(?:256|384|521))\s+AAAA'
+    metadata:
+      cwe: "CWE-798"
+      cwe2: "CWE-321"
+      severity: "INFO"
+      algorithm: "SSH"
+      family: "ASYM"
+      mode: "PUBLIC_KEY"
+
+  - id: jwt-algorithm-constant
+    languages: [generic]
+    severity: WARNING
+    message: "JWT signing algorithm '$ALG' referenced"
+    pattern-regex: '\b(HS|RS|ES|PS)(256|384|512)\b'
+    metadata:
+      cwe: "CWE-347"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "$ALG"
+      family: "JWT"
+      mode: "SIGNING"
+
+  - id: broken-primitive-constant
+    languages: [generic]
+    severity: ERROR
+    message: "Reference to broken/deprecated primitive '$ALG'"
+    pattern-regex: '\b(MD2|MD4|MD5|RC4|RC2|SSLv2|SSLv3|TLSv1(?!\.\d)|DESede|3DES|Blowfish)\b'
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "ERROR"
+      algorithm: "$ALG"
+      # Deliberately UNKNOWN, not SYM: this rule matches hashes, stream
+      # ciphers and transport protocols as well as block ciphers. Declaring
+      # SYM would make the family-hinted sniffer resolve a matched MD5 as DES.
+      family: "UNKNOWN"
+      mode: "WEAK"
+
+  - id: insecure-protocol-version
+    languages: [generic]
+    severity: ERROR
+    message: "Deprecated protocol version '$VER' configured"
+    pattern-regex: '\b(SSLv2|SSLv3|TLSv1(?:\.0)?|TLSv1\.1)\b'
+    metadata:
+      cwe: "CWE-295"
+      cwe2: "CWE-326"
+      severity: "ERROR"
+      algorithm: "TLS"
+      family: "TLS"
+      mode: "TRANSPORT"
+
+  - id: approved-primitive-constant
+    languages: [generic]
+    severity: INFO
+    message: "Reference to approved primitive '$ALG'"
+    pattern-regex: '\b(ML-KEM-\d+|ML-DSA-\d+|Kyber\d+|Dilithium\d+|AES-256-GCM|AES-128-GCM|ChaCha20-Poly1305|SHA-?384|SHA3-512|RSA-3072|RSA-4096|Ed25519)\b'
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "INFO"
+      algorithm: "$ALG"
+      family: "MULTI"
+      mode: "UNKNOWN"
+
+  - id: hardcoded-credential-literal
+    languages: [generic]
+    severity: ERROR
+    message: "Possible hardcoded credential/key literal"
+    pattern-regex: '(?i)\b(secret|password|passwd|api[_-]?key|private[_-]?key|client[_-]?secret|encryption[_-]?key)\b\s*[:=]\s*["''][^"''\n]{8,}["'']'
+    metadata:
+      cwe: "CWE-798"
+      cwe2: "CWE-321"
+      severity: "ERROR"
+      algorithm: "UNKNOWN"
+      family: "MULTI"
+      mode: "KEY_MGMT"
+
+  # =========================================================================
+  # CONFIG FILES
+  # `generic` + path filters: pattern-regex is language-agnostic, so we scope
+  # it to config-ish files rather than re-running over every source file.
+  # =========================================================================
+  - id: config-keystore-truststore
+    languages: [generic]
+    severity: INFO
+    message: "Keystore/truststore configuration key - review key custody"
+    pattern-regex: '(?i)\b(keystore|truststore|key-?store|trust-?store)([-_.a-z0-9]*)?\s*[:=]\s*\S+'
+    paths:
+      include:
+        - "**/*.yml"
+        - "**/*.yaml"
+        - "**/*.json"
+        - "**/*.xml"
+        - "**/*.properties"
+        - "**/*.conf"
+        - "**/*.cfg"
+        - "**/*.ini"
+        - "**/*.env"
+        - "**/web.config"
+        - "**/appsettings*.json"
+    metadata:
+      cwe: "CWE-326"
+      cwe2: "CWE-295"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "TLS"
+      mode: "KEYSTORE"
+
+  - id: config-cipher-suite
+    languages: [generic]
+    severity: WARNING
+    message: "Explicit cipher suite configured - review for weak suites"
+    pattern-regex: '(?i)\b(cipher[._-]?suites?|tls[._-]?cipher[._-]?suites?|ssl[._-]?cipher[._-]?suites?)\b\s*[:=]\s*\S+'
+    paths:
+      include:
+        - "**/*.yml"
+        - "**/*.yaml"
+        - "**/*.json"
+        - "**/*.xml"
+        - "**/*.properties"
+        - "**/*.conf"
+        - "**/*.cfg"
+        - "**/*.ini"
+        - "**/web.config"
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "TLS"
+      family: "TLS"
+      mode: "NEGOTIATION"
+
+  - id: config-algorithm-key
+    languages: [generic]
+    severity: WARNING
+    message: "Algorithm selection configured: $KEY"
+    pattern-regex: '(?i)\b(encryption[._-]?algo(rithm)?|signing[._-]?algo(rithm)?|key[._-]?algo(rithm)?|mac[._-]?algo(rithm)?|hash[._-]?algo(rithm)?)\b\s*[:=]\s*\S+'
+    paths:
+      include:
+        - "**/*.yml"
+        - "**/*.yaml"
+        - "**/*.json"
+        - "**/*.xml"
+        - "**/*.properties"
+        - "**/*.conf"
+        - "**/*.cfg"
+        - "**/*.ini"
+        - "**/web.config"
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "$KEY"
+      family: "MULTI"
+      mode: "CONFIG"
+
+  - id: config-ssl-protocol-version
+    languages: [generic]
+    severity: WARNING
+    message: "SSL/TLS protocol version pinned"
+    pattern-regex: '(?i)\b(ssl|tls)[._-]?(protocol|version|enabled[._-]?protocols?)\b\s*[:=]\s*["'']?([A-Za-z0-9._,\s-]+)'
+    paths:
+      include:
+        - "**/*.yml"
+        - "**/*.yaml"
+        - "**/*.json"
+        - "**/*.xml"
+        - "**/*.properties"
+        - "**/*.conf"
+        - "**/*.cfg"
+        - "**/*.ini"
+        - "**/web.config"
+    metadata:
+      cwe: "CWE-295"
+      cwe2: "CWE-326"
+      severity: "WARNING"
+      algorithm: "TLS"
+      family: "TLS"
+      mode: "TRANSPORT"
+
+  - id: config-crypto-provider
+    languages: [generic]
+    severity: INFO
+    message: "Cryptographic provider/JCE configured"
+    pattern-regex: '(?i)\b(jce[._-]?provider|crypto[._-]?provider|security[._-]?provider|bouncy[._-]?castle[._-]?provider|keystore[._-]?type)\b\s*[:=]\s*\S+'
+    paths:
+      include:
+        - "**/*.yml"
+        - "**/*.yaml"
+        - "**/*.json"
+        - "**/*.xml"
+        - "**/*.properties"
+    metadata:
+      cwe: "CWE-327"
+      cwe2: "CWE-326"
+      severity: "INFO"
+      algorithm: "UNKNOWN"
+      family: "MULTI"
+      mode: "PROVIDER"
+
+  - id: config-jwt-secret-configured
+    languages: [generic]
+    severity: WARNING
+    message: "JWT secret/signing key configured - ensure it is not committed"
+    pattern-regex: '(?i)\b(jwt[._-]?(secret|signing[._-]?key|private[._-]?key)|token[._-]?signing[._-]?key)\b\s*[:=]\s*\S+'
+    paths:
+      include:
+        - "**/*.yml"
+        - "**/*.yaml"
+        - "**/*.json"
+        - "**/*.xml"
+        - "**/*.properties"
+        - "**/*.env"
+    metadata:
+      cwe: "CWE-347"
+      cwe2: "CWE-798"
+      severity: "WARNING"
+      algorithm: "JWT"
+      family: "JWT"
+      mode: "SIGNING"

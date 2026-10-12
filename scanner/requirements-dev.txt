@@ -1,0 +1,6 @@
+# Test-only dependencies.
+#
+# Deliberately NOT in the runtime image: pytest is a dev dependency and the
+# image should stay lean. `make test` pip-installs this into the running
+# container instead of baking it in.
+pytest==8.3.4

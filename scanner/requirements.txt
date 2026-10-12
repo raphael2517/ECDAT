@@ -1,0 +1,35 @@
+# ECDAT scanner runtime dependencies
+#
+# Install with:
+#   pip install --find-links ./bin/wheels -r scanner/requirements.txt
+#
+# Scanner-only. The API service has its own requirements.txt and is installed
+# into the same venv by the Dockerfile. Keeping them separate avoids a
+# transitive pin fight: semgrep pulls in `mcp`, which requires pydantic>=2.11,
+# so the API's pydantic pin must move with it.
+#
+# Notes on what is deliberately NOT here:
+#   semgrep  - installed from PyPI, NOT a ./bin/semgrep static binary. Modern
+#              semgrep GitHub releases publish zero binary assets, so fetching
+#              one yields a 10-year-old 0.107.0 that cannot express the rule
+#              syntax in ./rules. PyPI gives us 1.x plus semgrep-core.
+#   syft     - static binary at ./bin/syft (Anchore publishes tarballs normally).
+#   ollama   - LLM enrichment was cut. Enrichment is deterministic heuristics.
+#   qiskit / qiskit-aer - the VQE scorer was cut. Quantum effort is a cited
+#              lookup table, not a simulation. See risk_engine.py.
+
+# --- detection ---
+semgrep==1.178.0
+pyyaml==6.0.2
+tqdm==4.66.5
+gitpython==3.1.43
+
+# --- post-quantum benchmarking ---
+# liboqs-python is a PURE PYTHON wheel: it contains no .so and ctypes-loads
+# liboqs.so from $OQS_INSTALL_PATH. The native lib ships in ./bin/liboqs/.
+liboqs-python==0.16.0
+# Classical baseline for the before/after benchmark delta
+cryptography==43.0.1
+
+# --- CBOM assembly ---
+cyclonedx-python-lib>=6.0,<8
