@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useHealth, useScanSocket } from "./hooks/useScan";
 import { useStore } from "./hooks/useStore";
+import { getApiKey, setApiKey } from "./services/api";
 import { CBOMTree } from "./components/CBOMTree";
 import { RiskHeatmap } from "./components/RiskHeatmap";
 import { MoscaSlider } from "./components/MoscaSlider";
@@ -132,6 +133,58 @@ function ScanLauncher() {
       >
         {launching ? "starting…" : "Scan"}
       </button>
+      <ApiKeyField />
+    </div>
+  );
+}
+
+/**
+ * Only shown when this instance actually demands a key, so the local dev case
+ * (no key configured) stays uncluttered. Appears as soon as any request 401s,
+ * which is the moment it becomes useful.
+ */
+function ApiKeyField() {
+  const error = useStore((s) => s.error);
+  const refreshHealth = useStore((s) => s.refreshHealth);
+  const [key, setKey] = useState(() => getApiKey());
+  const [revealed, setRevealed] = useState(false);
+  const [needed, setNeeded] = useState(false);
+
+  useEffect(() => {
+    if (error && /unauthorized/i.test(error)) setNeeded(true);
+  }, [error]);
+
+  if (!needed && !getApiKey()) return null;
+
+  const save = () => {
+    setApiKey(key);
+    setNeeded(false);
+    void refreshHealth();
+    void useStore.getState().refreshScans();
+  };
+
+  return (
+    <div className="keybox">
+      <label htmlFor="apikey">API key</label>
+      <div className="keyrow">
+        <input
+          id="apikey"
+          type={revealed ? "text" : "password"}
+          placeholder="required by this instance"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => e.key === "Enter" && save()}
+        />
+        <button
+          className="tab ghost"
+          onClick={() => setRevealed(!revealed)}
+          title={revealed ? "hide" : "show"}
+        >
+          {revealed ? "hide" : "show"}
+        </button>
+      </div>
+      <p className="note">Stored in this browser only.</p>
     </div>
   );
 }

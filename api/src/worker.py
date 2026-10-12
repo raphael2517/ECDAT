@@ -85,6 +85,16 @@ class ScanManager:
                 pass
 
     # -- execution ---------------------------------------------------------
+    def running_count(self) -> int:
+        return sum(1 for j in self.jobs.values() if j.status.state == ScanState.RUNNING)
+
+    def max_concurrent(self) -> int:
+        try:
+            n = int(os.getenv("ECDAT_MAX_CONCURRENT_SCANS", "2"))
+        except ValueError:
+            n = 2
+        return max(1, n)
+
     async def launch(self, request: Dict[str, Any]) -> ScanJob:
         scan_id = self.next_id()
         job = ScanJob(scan_id, request)

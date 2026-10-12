@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 from models import (
@@ -22,9 +22,14 @@ from models import (
     ScanRequest,
     ScanStatus,
 )
+from security import require_api_key, require_ws_key
 from worker import ScanJob, manager
 
-router = APIRouter()
+# The dependency applies to every route registered on this router, which is
+# every /api/* endpoint. /health is registered on the app instead and stays
+# open: the container HEALTHCHECK and any uptime monitor need it, and it
+# reveals component versions and nothing more.
+router = APIRouter(dependencies=[Depends(require_api_key)])
 
 
 # ---------------------------------------------------------------------------
@@ -49,6 +54,20 @@ def _load_report(scan_id: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 @router.post("/api/scan", response_model=ScanStatus, status_code=202)
 async def start_scan(req: ScanRequest) -> ScanStatus:
+    # Each scan is a Semgrep run plus, optionally, real keygen/sign benchmarks.
+    # Without a ceiling, an unauthenticated caller can pin every core on the
+    # host just by posting the same request in a loop.
+    cap = manager.max_concurrent()
+    running = manager.running_count()
+    if running >= cap:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"too many scans in progress ({running}/{cap}); "
+                f"retry once one finishes"
+            ),
+            headers={"Retry-After": "5"},
+        )
     job = await manager.launch(req.model_dump())
     return job.status
 
@@ -72,7 +91,11 @@ async def cancel_scan(scan_id: str) -> ScanStatus:
 
 @router.websocket("/api/scan/{scan_id}/ws")
 async def scan_ws(websocket: WebSocket, scan_id: str) -> None:
-    await websocket.accept()
+    # Authenticates and accepts in one step; on failure the socket is closed
+    # with 4401 and nothing further here should run.
+    await require_ws_key(websocket)
+    if websocket.client_state.name != "CONNECTED":
+        return
     job = manager.get(scan_id)
     if not job:
         await websocket.send_json({"stage": "error", "progress": 100,

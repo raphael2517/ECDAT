@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional, Tuple
 import git
 
 from detection import run_syft
+from target_guard import guard_git_url, guard_local_path
 from utils import log
 
 WORKSPACE_PREFIX = "ecdat-scan-"
@@ -99,6 +100,9 @@ def destroy_workspace(ws: Path) -> None:
 # Resolvers
 # ---------------------------------------------------------------------------
 def resolve_git(url: str, dest: Path, branch: Optional[str] = None, depth: int = 1) -> Path:
+    # Policy check before the clone, not after: the whole point is to avoid
+    # opening the connection at all.
+    guard_git_url(url)
     log.info("cloning %s (branch=%s depth=%s)", url, branch or "default", depth)
     try:
         git.Repo.clone_from(url, dest, branch=branch, depth=depth)
@@ -113,7 +117,9 @@ def resolve_git(url: str, dest: Path, branch: Optional[str] = None, depth: int =
 
 
 def resolve_zip(archive: str, dest: Path) -> Path:
-    src = Path(archive).expanduser()
+    # A zip is just a path to a file on disk, so it is subject to the same
+    # policy as any other local target.
+    src = guard_local_path(Path(archive), what="archive")
     if not src.is_file():
         raise IngestionError(f"archive not found: {src}")
     log.info("extracting %s", src)
@@ -128,7 +134,7 @@ def resolve_zip(archive: str, dest: Path) -> Path:
 
 
 def resolve_path(local: str, dest: Path) -> Path:
-    src = Path(local).expanduser().resolve()
+    src = guard_local_path(Path(local))
     log.info("copying %s -> workspace", src)
     if src.is_dir():
         # ignore=shutil.ignore_patterns keeps the workspace small and avoids

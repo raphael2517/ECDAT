@@ -28,6 +28,7 @@ from fastapi.staticfiles import StaticFiles
 
 from models import HealthResponse
 from routes import router
+from security import startup_notice
 from worker import manager
 
 APP_VERSION = "1.0.0"
@@ -85,6 +86,12 @@ async def lifespan(app: FastAPI):
     manager.output_dir.mkdir(parents=True, exist_ok=True)
     print(f"[api] output dir: {manager.output_dir}")
     print(f"[api] rules dir : {RULES_DIR}")
+    print(f"[api] scan root : {os.getenv('ECDAT_SCAN_ROOT') or '(unset - any local path is scannable)'}")
+    print(f"[api] max scans : {manager.max_concurrent()} concurrent")
+    # Say out loud, at startup, whether /api is open. A deployment that forgot
+    # to set ECDAT_API_KEY should be obvious in the logs rather than something
+    # you discover from an access log.
+    startup_notice()
     yield
 
 

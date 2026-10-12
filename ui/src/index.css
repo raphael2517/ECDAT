@@ -111,6 +111,18 @@ button.primary {
 button.primary:disabled { opacity: .45; cursor: not-allowed; }
 button.link { background: none; border: none; color: var(--accent); cursor: pointer; font: inherit; }
 
+/* ---------- api key ---------- */
+.keybox { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 2px; }
+.keybox label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.keyrow { display: flex; gap: 6px; }
+.keyrow input {
+  flex: 1; min-width: 0;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font: inherit;
+}
+.keyrow input:focus { outline: 1px solid var(--accent); }
+.keybox .note { padding: 6px 0 0; }
+
 /* ---------- history ---------- */
 h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
 h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 0 6px; }
