@@ -1,0 +1,10 @@
+# FastAPI service dependencies.
+#
+# Installed into the same venv as scanner/requirements.txt, after it.
+#
+# pydantic is floored at 2.11 rather than pinned to an exact patch because
+# semgrep depends on `mcp`, which requires pydantic>=2.11.0. Pinning lower
+# makes the two requirements files unresolvable together.
+fastapi==0.115.0
+uvicorn[standard]==0.31.1
+pydantic>=2.11,<3
