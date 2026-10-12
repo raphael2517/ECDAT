@@ -183,13 +183,15 @@ test: test-unit test-e2e
 test-unit:
 	@echo ">> unit tests (no docker)"
 	@cd scanner && OQS_INSTALL_PATH=$(CURDIR)/bin/liboqs \
-		$(if $(wildcard .venv),../.venv/bin/python,python3) -m pytest tests/test_scanner.py -q
+		$(if $(wildcard .venv),../.venv/bin/python,python3) -m pytest \
+		tests/test_scanner.py tests/test_target_guard.py -q
 
 test-e2e:
 	@echo ">> integration tests (in image)"
 	@docker run --rm -v "$(CURDIR):/w" -w /w --entrypoint /bin/sh $(IMAGE) -c \
 		'/venv/bin/pip install -q -r /w/scanner/requirements-dev.txt && \
-		 OQS_INSTALL_PATH=/opt/oqs /venv/bin/python -m pytest scanner/tests/test_integration.py -q'
+		 OQS_INSTALL_PATH=/opt/oqs /venv/bin/python -m pytest \
+		 scanner/tests/test_integration.py scanner/tests/test_api_auth.py -q'
 
 # ---------------------------------------------------------------------------
 # scanning
