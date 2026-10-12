@@ -1,0 +1,33 @@
+# ECDAT fixture application - intentionally insecure
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    protocol: TLSv1.1
+    keystore: /etc/app/keystore.p12
+    keystore-password: ${KEYSTORE_PASSWORD}
+    truststore: /etc/app/truststore.p12
+    cipher-suite: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+    key-store-type: PKCS12
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/payment
+    password: ${DB_PASSWORD}
+
+payment:
+  # payment card data -> 10 year shelf life under the Mosca model
+  card-vault:
+    encryption-algorithm: DES
+    key-management: hardcoded
+  jwt:
+    secret: super-secret-signing-value-change-me
+    signing-algorithm: HS256
+    expires-in: 86400
+  pii:
+    encryption:
+      algorithm: RSA
+      key-size: 1024
+  legacy:
+    ssl-protocol: SSLv3
+    hash-algorithm: MD5
