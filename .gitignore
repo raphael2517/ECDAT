@@ -5,7 +5,13 @@ output/*
 !output/.gitkeep
 
 # Local env
+#
+# Covers .env, .env.public, .env.local and friends - a real ECDAT_API_KEY must
+# never be committed. The *.example templates are re-included below.
 .env
+.env.*
+!.env.example
+!.env.public.example
 # ...but the test fixture's .env is deliberate insecure sample data and must be
 # tracked. Without this negation `git status` silently drops it and a fresh
 # clone scans 51 findings instead of 54, because three of them come from this

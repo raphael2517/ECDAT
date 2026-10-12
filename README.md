@@ -225,6 +225,7 @@ ecdat-project/
 │   ├── src/
 │   │   ├── __main__.py     CLI: scan / rerisk
 │   │   ├── ingestion.py    git | path | zip | image -> workspace + SBOM
+│   │   ├── target_guard.py refuse non-public hosts + paths outside the root
 │   │   ├── detection.py    semgrep runner + syft parser -> Finding
 │   │   ├── enrichment.py   heuristic classify (no LLM)
 │   │   ├── cbom_builder.py CycloneDX 1.6 assembly
@@ -233,12 +234,16 @@ ecdat-project/
 │   │   └── utils.py        logging, config, progress events
 │   └── tests/
 │       ├── test_scanner.py       unit, no docker needed
+│       ├── test_target_guard.py  unit, SSRF + path-escape policy
+│       ├── test_api_auth.py      unit, skipped unless API deps present
 │       ├── test_integration.py   end-to-end, runs in the image
 │       └── fixtures/insecure-app deliberately broken sample
 ├── api/
 │   ├── requirements.txt
-│   └── src/{main,routes,models,worker}.py
+│   └── src/{main,routes,models,worker,security}.py
 ├── docker/{entrypoint.sh,nginx.conf}
+├── deploy/tunnel.sh      cloudflared wrapper; refuses an unauthenticated start
+├── docs/DEPLOYMENT.md    exposure policy, threat table, known gaps
 ├── ui/                     React + Vite dashboard
 │   ├── src/
 │   │   ├── App.tsx         layout: sidebar + tabbed main panel
@@ -313,6 +318,41 @@ docker run --rm --network none -v "$PWD/output:/app/output" \
 
 Scan a **local path or zip** when disconnected — ingesting a Git URL obviously
 requires network.
+
+---
+
+## Exposing it beyond localhost
+
+**Read [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) before putting this on a
+public URL.**
+
+ECDAT is safe to run on `localhost` and unsafe to run on the open internet with
+its defaults, because `POST /api/scan` takes an arbitrary target: a local path
+is copied and scanned, and the CBOM response contains source snippets, so an
+unauthenticated caller can read files off the host. A Git URL target is cloned
+by the server, which is an SSRF primitive against anything the host can reach.
+
+Three settings change that, all off by default so the local quickstart keeps
+working:
+
+```bash
+export ECDAT_API_KEY="$(openssl rand -base64 32)"   # required when exposed
+export ECDAT_SCAN_ROOT="$PWD/demo-targets"          # confine local targets
+export ECDAT_MAX_CONCURRENT_SCANS=2                 # bound CPU per caller
+```
+
+The target policy lives in `scanner/src/target_guard.py` and is enforced in the
+scanner itself, so the CLI and the API share one implementation. The API key
+gate is a router dependency in `api/src/routes.py`; the WebSocket takes the key
+as `?key=` because browsers cannot set headers on a handshake.
+
+```bash
+./deploy/tunnel.sh quick    # throwaway trycloudflare.com URL
+```
+
+Put **Cloudflare Access** in front of anything you intend to keep — it is a
+better control than anything in this repository, because an unauthenticated
+request never reaches the scanner.
 
 ---
 
