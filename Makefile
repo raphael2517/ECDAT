@@ -44,6 +44,15 @@ LIBOQS_KEMS   := KEM_ml_kem_768
 # recommendation table advertises something we cannot actually benchmark.
 LIBOQS_SIGS   := SIG_ml_dsa_65;SIG_ml_dsa_87
 
+# Artifacts the Dockerfile COPYs into the image. Only bin/liboqs is tracked in
+# git (it is under 1 MB); bin/syft is a 43 MB linux/amd64 binary that is
+# deliberately gitignored and fetched by `make setup`. Declaring this list on
+# EVERY target that reaches `docker build` is what stops a fresh clone from
+# failing at `COPY bin/syft /usr/local/bin/syft`.
+VENDORED := bin/syft \
+            bin/liboqs/lib/liboqs.so.0.16.0 \
+            bin/wheels/liboqs_python-$(LIBOQS_VER)-py3-none-any.whl
+
 .PHONY: help setup build up down scan rerisk logs health shell shell-scanner test test-unit test-e2e clean distclean verify
 
 help:
@@ -66,7 +75,7 @@ help:
 # ---------------------------------------------------------------------------
 # setup
 # ---------------------------------------------------------------------------
-setup: bin/syft bin/liboqs/lib/liboqs.so.0.16.0 bin/wheels/liboqs_python-$(LIBOQS_VER)-py3-none-any.whl build
+setup: $(VENDORED) build
 	@echo ""
 	@echo "setup complete. Next:  make up"
 
@@ -124,7 +133,7 @@ bin/wheels/liboqs_python-$(LIBOQS_VER)-py3-none-any.whl:
 # ---------------------------------------------------------------------------
 # image + lifecycle
 # ---------------------------------------------------------------------------
-build:
+build: $(VENDORED)
 	@echo ">> building $(IMAGE)"
 	@if [ -n "$(COMPOSE)" ]; then $(COMPOSE) build; else docker build -t $(IMAGE) --target runtime .; fi
 
