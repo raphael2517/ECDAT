@@ -1,0 +1,25 @@
+services:
+  ecdat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: ecdat:latest
+    container_name: ecdat
+    command: ["api"]
+    ports:
+      - "8000:8000"   # API, directly (scripting / curl / docs)
+      - "8080:80"     # nginx: serves the UI bundle, proxies /api
+    volumes:
+      - ./output:/app/output
+    environment:
+      OUTPUT_DIR: /app/output
+      SCANNER_RULES_PATH: /app/scanner/rules
+      OQS_INSTALL_PATH: /opt/oqs
+      Z_ESTIMATE: ${Z_ESTIMATE:-15}
+      UID: ${UID:-1000}
+      GID: ${GID:-1000}
+    # No GPU reservation. The LLM phase was cut, and the only remaining
+    # optional accelerator (Qiskit Aer) was dropped with it. CPU-only keeps
+    # the image portable to any x86_64 host.
+    restart: unless-stopped

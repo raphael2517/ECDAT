@@ -1,0 +1,42 @@
+# ---------------------------------------------------------------------------
+# Runtime output (scan results, CBOMs, reports)
+# ---------------------------------------------------------------------------
+output/*
+!output/.gitkeep
+
+# Local env
+.env
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# ---------------------------------------------------------------------------
+# Node
+# ---------------------------------------------------------------------------
+ui/node_modules/
+ui/dist/
+ui/.vite/
+ui/tsconfig.tsbuildinfo
+
+# ---------------------------------------------------------------------------
+# Vendored third-party binaries
+#
+# bin/syft is a 43 MB prebuilt ELF, pinned to linux/amd64. `make setup` fetches
+# it in one curl from the anchore release, so tracking it would bloat every
+# clone and be wrong on any non-amd64 host.
+#
+# bin/liboqs (the packaged lib/ + include/ + pkgconfig) IS tracked: it is under
+# 1 MB and spares a from-source cmake build, which the Dockerfile consumes.
+# The raw build tree around it is not.
+# ---------------------------------------------------------------------------
+bin/syft
+bin/liboqs/**/*.o
+bin/liboqs/**/*.a
+bin/liboqs/**/CMakeCache.txt
+bin/liboqs/**/CMakeFiles/

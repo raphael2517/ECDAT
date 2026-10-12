@@ -1,0 +1,11 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+output/*
+ui/node_modules
+ui/dist
+*.md
+!README.md
+.env
