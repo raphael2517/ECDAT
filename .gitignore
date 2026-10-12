@@ -6,6 +6,11 @@ output/*
 
 # Local env
 .env
+# ...but the test fixture's .env is deliberate insecure sample data and must be
+# tracked. Without this negation `git status` silently drops it and a fresh
+# clone scans 51 findings instead of 54, because three of them come from this
+# file. Checked for real credentials before negating: all values are synthetic.
+!scanner/tests/fixtures/**/.env
 
 # ---------------------------------------------------------------------------
 # Python
